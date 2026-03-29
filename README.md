@@ -114,6 +114,8 @@ export DATABRICKS_HOST=https://<your-workspace-host>
 export DATABRICKS_TOKEN=<your-personal-access-token>
 ```
 
+For GitHub Actions secrets, set `DATABRICKS_HOST` to the real workspace URL (for example, `https://adb-<id>.<region>.databricks.com`), not a placeholder like `${env.DATABRICKS_HOST}`.
+
 Optional (if using an existing cluster):
 
 ```bash

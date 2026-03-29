@@ -37,6 +37,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Validate and normalize Databricks host
+        run: |
+          if [ -z "${DATABRICKS_HOST}" ]; then
+            echo "DATABRICKS_HOST is not set. Configure repository secret DATABRICKS_HOST."
+            exit 1
+          fi
+          if [[ "${DATABRICKS_HOST}" == *'${env.'* ]] || [[ "${DATABRICKS_HOST}" == *'${{'* ]]; then
+            echo "DATABRICKS_HOST looks like a placeholder (${DATABRICKS_HOST})."
+            echo "Set it to a real workspace URL such as https://adb-1234567890123456.12.azuredatabricks.net"
+            exit 1
+          fi
+          if [[ "${DATABRICKS_HOST}" != https://* ]]; then
+            echo "DATABRICKS_HOST is missing https:// prefix; normalizing for this run."
+            echo "DATABRICKS_HOST=https://${DATABRICKS_HOST}" >> "${GITHUB_ENV}"
+          fi
+
       - name: Build reusable JAR
         working-directory: jar-utils
         run: ./gradlew clean test build --no-daemon
