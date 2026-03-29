@@ -102,8 +102,10 @@ jar-utils/build/libs/project-utils.jar
 Deployment uploads this artifact to:
 
 ```text
-dbfs:/Volumes/main/default/crypto-data/jars/project-utils.jar
+dbfs:/tmp/project-utils.jar
 ```
+
+If you prefer a Unity Catalog Volume path, set GitHub secret `DATABRICKS_JAR_URI` (for example, `dbfs:/Volumes/<catalog>/<schema>/<volume>/project-utils.jar`).
 
 ## Run Tests
 

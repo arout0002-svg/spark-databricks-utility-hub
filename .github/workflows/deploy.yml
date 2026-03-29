@@ -13,6 +13,7 @@ jobs:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       DATABRICKS_CLUSTER_ID: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+      DATABRICKS_JAR_URI: ${{ secrets.DATABRICKS_JAR_URI }}
 
     steps:
       - name: Checkout repository
@@ -76,20 +77,28 @@ jobs:
           token = ${DATABRICKS_TOKEN}
           EOF
 
+      - name: Resolve JAR destination
+        run: |
+          JAR_URI="${DATABRICKS_JAR_URI:-dbfs:/tmp/project-utils.jar}"
+          echo "JAR_URI=${JAR_URI}" >> "${GITHUB_ENV}"
+          echo "Using JAR destination: ${JAR_URI}"
+
       - name: Build reusable JAR
         working-directory: jar-utils
         run: ./gradlew clean test build --no-daemon
 
       - name: Upload JAR to DBFS
         run: |
-          databricks fs mkdir dbfs:/Volumes/main/default/crypto-data/jars --profile ci
-          databricks fs cp jar-utils/build/libs/project-utils.jar dbfs:/Volumes/main/default/crypto-data/jars/project-utils.jar --overwrite --profile ci
+          if [[ "${JAR_URI}" == dbfs:/Volumes/* ]]; then
+            databricks fs mkdir "${JAR_URI%/*}" --profile ci
+          fi
+          databricks fs cp jar-utils/build/libs/project-utils.jar "${JAR_URI}" --overwrite --profile ci
 
       - name: Validate Databricks bundle
-        run: databricks bundle validate -t dev --profile ci
+        run: databricks bundle validate -t dev --profile ci --var "jar_path=${JAR_URI}"
 
       - name: Deploy Databricks bundle
-        run: databricks bundle deploy -t dev --profile ci
+        run: databricks bundle deploy -t dev --profile ci --var "jar_path=${JAR_URI}"
 
       - name: Run crypto market analysis job
-        run: databricks bundle run crypto_market_analysis_job -t dev --profile ci
+        run: databricks bundle run crypto_market_analysis_job -t dev --profile ci --var "jar_path=${JAR_URI}"
