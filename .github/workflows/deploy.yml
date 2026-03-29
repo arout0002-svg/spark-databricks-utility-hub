@@ -82,7 +82,8 @@ jobs:
 
       - name: Upload JAR to DBFS
         run: |
-          databricks fs cp jar-utils/build/libs/project-utils.jar dbfs:/FileStore/jars/project-utils.jar --overwrite --profile ci
+          databricks fs mkdir dbfs:/Volumes/main/default/crypto-data/jars --profile ci
+          databricks fs cp jar-utils/build/libs/project-utils.jar dbfs:/Volumes/main/default/crypto-data/jars/project-utils.jar --overwrite --profile ci
 
       - name: Validate Databricks bundle
         run: databricks bundle validate -t dev --profile ci

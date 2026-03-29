@@ -99,6 +99,12 @@ Output JAR:
 jar-utils/build/libs/project-utils.jar
 ```
 
+Deployment uploads this artifact to:
+
+```text
+dbfs:/Volumes/main/default/crypto-data/jars/project-utils.jar
+```
+
 ## Run Tests
 
 ```bash

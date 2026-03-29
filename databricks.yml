@@ -10,7 +10,7 @@ include:
 variables:
   jar_path:
     description: Path to reusable utility JAR
-    default: dbfs:/FileStore/jars/project-utils.jar
+    default: dbfs:/Volumes/main/default/crypto-data/jars/project-utils.jar
   output_volume_path:
     description: Default output path for analytics jobs
     default: /Volumes/main/default/crypto-data/output/
