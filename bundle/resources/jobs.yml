@@ -9,10 +9,10 @@ resources:
           # job_cluster_key with existing_cluster_id: ${var.cluster_id}
           job_cluster_key: shared_job_cluster
           spark_python_task:
-            python_file: ./src/jobs/crypto_market_analysis.py
+            python_file: ../../src/jobs/crypto_market_analysis.py
             parameters:
               - "--config"
-              - "./src/configs/${bundle.target}.yaml"
+              - "../../src/configs/${bundle.target}.yaml"
           libraries:
             - jar: ${var.jar_path}
       job_clusters:
@@ -30,10 +30,10 @@ resources:
         - task_key: run_etl_job
           job_cluster_key: shared_job_cluster
           spark_python_task:
-            python_file: ./src/jobs/etl_job.py
+            python_file: ../../src/jobs/etl_job.py
             parameters:
               - "--config"
-              - "./src/configs/${bundle.target}.yaml"
+              - "../../src/configs/${bundle.target}.yaml"
           libraries:
             - jar: ${var.jar_path}
       job_clusters:
@@ -51,10 +51,10 @@ resources:
         - task_key: run_streaming_job
           job_cluster_key: shared_job_cluster
           spark_python_task:
-            python_file: ./src/jobs/streaming_job.py
+            python_file: ../../src/jobs/streaming_job.py
             parameters:
               - "--config"
-              - "./src/configs/${bundle.target}.yaml"
+              - "../../src/configs/${bundle.target}.yaml"
           libraries:
             - jar: ${var.jar_path}
       job_clusters:
