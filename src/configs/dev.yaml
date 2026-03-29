@@ -1,0 +1,22 @@
+env: dev
+
+crypto_input_path: /Volumes/main/default/crypto-data/input/crypto_prices.csv
+crypto_input_format: csv
+crypto_output_path: /Volumes/main/default/crypto-data/output/dev/crypto_market_analysis
+
+etl_input_path: /Volumes/main/default/crypto-data/input/raw_etl.json
+etl_input_format: json
+etl_output_path: /Volumes/main/default/crypto-data/output/dev/etl_curated
+etl_required_columns:
+  - id
+  - updated_at
+etl_expected_types:
+  id: string
+etl_dedupe_keys:
+  - id
+etl_dedupe_order_col: updated_at
+
+stream_output_path: /Volumes/main/default/crypto-data/output/dev/streaming_output
+stream_checkpoint_path: /Volumes/main/default/crypto-data/checkpoints/dev/streaming_job
+stream_rows_per_second: 5
+stream_run_seconds: 30

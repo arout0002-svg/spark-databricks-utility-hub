@@ -1,0 +1,39 @@
+bundle:
+  name: spark_databricks_utility_hub
+  databricks_cli_version: ">=0.205.0"
+
+include:
+  - bundle/resources/*.yml
+  - bundle/dev.yml
+  - bundle/prod.yml
+
+variables:
+  jar_path:
+    description: Path to reusable utility JAR
+    default: dbfs:/FileStore/jars/project-utils.jar
+  output_volume_path:
+    description: Default output path for analytics jobs
+    default: /Volumes/main/default/crypto-data/output/
+  checkpoint_path:
+    description: Checkpoint path for streaming jobs
+    default: /Volumes/main/default/crypto-data/checkpoints/streaming_job
+  input_data_path:
+    description: Source path for crypto input files
+    default: /Volumes/main/default/crypto-data/input/crypto_prices.csv
+  cluster_id:
+    description: Optional existing cluster ID override
+    default: ""
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+  prod:
+    mode: production
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}

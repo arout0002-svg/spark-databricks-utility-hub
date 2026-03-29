@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/*
+!dist/.gitkeep
+*.egg-info/
+.eggs/
+
+# Java/Gradle
+.gradle/
+jar-utils/build/
+*.class
+*.jar
+!jar-utils/build/libs/project-utils.jar
+!jar-utils/gradle/wrapper/gradle-wrapper.jar
+
+# Spark / Databricks
+spark-warehouse/
+metastore_db/
+checkpoint/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Env / secrets
+.env
+*.local
+databricks-token.txt

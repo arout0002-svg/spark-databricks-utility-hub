@@ -1,0 +1,55 @@
+name: Deploy to Databricks
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CLUSTER_ID: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build reusable JAR
+        working-directory: jar-utils
+        run: ./gradlew clean test build --no-daemon
+
+      - name: Upload JAR to DBFS
+        run: |
+          databricks fs cp jar-utils/build/libs/project-utils.jar dbfs:/FileStore/jars/project-utils.jar --overwrite
+
+      - name: Validate Databricks bundle
+        run: databricks bundle validate -t dev
+
+      - name: Deploy Databricks bundle
+        run: databricks bundle deploy -t dev
+
+      - name: Run crypto market analysis job
+        run: databricks bundle run crypto_market_analysis_job -t dev

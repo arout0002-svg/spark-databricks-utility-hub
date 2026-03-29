@@ -1,0 +1,5 @@
+targets:
+  prod:
+    variables:
+      output_volume_path: /Volumes/main/default/crypto-data/output/prod/
+      checkpoint_path: /Volumes/main/default/crypto-data/checkpoints/prod/streaming_job

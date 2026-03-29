@@ -1,0 +1,28 @@
+# Optional template: serverless-focused Databricks jobs.
+# This file is intentionally not included by default in `databricks.yml`
+# so the standard cluster-based deployment remains stable.
+#
+# To use:
+# 1) Copy relevant resources into `bundle/resources/jobs.yml`
+# 2) Adjust names/paths/params as needed for your workspace
+# 3) Run `databricks bundle validate -t dev`
+#
+# Reference only; shape may evolve with Databricks job/serverless APIs.
+resources:
+  jobs:
+    crypto_market_analysis_job_serverless:
+      name: "${bundle.name}-${bundle.target}-crypto-analysis-serverless"
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: run_crypto_market_analysis_serverless
+          spark_python_task:
+            python_file: ./src/jobs/crypto_market_analysis.py
+            parameters:
+              - "--config"
+              - "./src/configs/${bundle.target}.yaml"
+          libraries:
+            - jar: ${var.jar_path}
+      # Example serverless hints; verify support in your workspace and runtime.
+      tags:
+        compute_mode: serverless
+        workload_type: batch
