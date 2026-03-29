@@ -42,19 +42,39 @@ jobs:
 
       - name: Validate and normalize Databricks host
         run: |
-          if [ -z "${DATABRICKS_HOST}" ]; then
-            echo "DATABRICKS_HOST is not set. Configure repository secret DATABRICKS_HOST."
-            exit 1
-          fi
-          if [[ "${DATABRICKS_HOST}" == *'${env.'* ]] || [[ "${DATABRICKS_HOST}" == *'${'* ]]; then
-            echo "DATABRICKS_HOST looks like a placeholder (${DATABRICKS_HOST})."
-            echo "Set it to a real workspace URL such as https://adb-1234567890123456.12.azuredatabricks.net"
-            exit 1
-          fi
-          if [[ "${DATABRICKS_HOST}" != https://* ]]; then
-            echo "DATABRICKS_HOST is missing https:// prefix; normalizing for this run."
-            echo "DATABRICKS_HOST=https://${DATABRICKS_HOST}" >> "${GITHUB_ENV}"
-          fi
+          python - <<'PY'
+          import hashlib
+          import os
+          import sys
+
+          host = os.getenv("DATABRICKS_HOST", "").strip()
+          if not host:
+              print("DATABRICKS_HOST is not set. Configure repository secret DATABRICKS_HOST.")
+              sys.exit(1)
+
+          if "${" in host or "env." in host:
+              print("DATABRICKS_HOST looks like a placeholder. Set it to the real workspace URL.")
+              sys.exit(1)
+
+          if not host.startswith("https://"):
+              host = f"https://{host}"
+
+          host_hash = hashlib.sha256(host.encode("utf-8")).hexdigest()[:12]
+          print(f"Using DATABRICKS_HOST hash: {host_hash}")
+
+          github_env = os.environ["GITHUB_ENV"]
+          with open(github_env, "a", encoding="utf-8") as fh:
+              fh.write(f"DATABRICKS_HOST={host}\n")
+          PY
+
+      - name: Configure Databricks CLI profile
+        run: |
+          mkdir -p "${HOME}"
+          cat > "${HOME}/.databrickscfg" <<EOF
+          [ci]
+          host = ${DATABRICKS_HOST}
+          token = ${DATABRICKS_TOKEN}
+          EOF
 
       - name: Build reusable JAR
         working-directory: jar-utils
@@ -62,13 +82,13 @@ jobs:
 
       - name: Upload JAR to DBFS
         run: |
-          databricks fs cp jar-utils/build/libs/project-utils.jar dbfs:/FileStore/jars/project-utils.jar --overwrite
+          databricks fs cp jar-utils/build/libs/project-utils.jar dbfs:/FileStore/jars/project-utils.jar --overwrite --profile ci
 
       - name: Validate Databricks bundle
-        run: databricks bundle validate -t dev
+        run: databricks bundle validate -t dev --profile ci
 
       - name: Deploy Databricks bundle
-        run: databricks bundle deploy -t dev
+        run: databricks bundle deploy -t dev --profile ci
 
       - name: Run crypto market analysis job
-        run: databricks bundle run crypto_market_analysis_job -t dev
+        run: databricks bundle run crypto_market_analysis_job -t dev --profile ci
