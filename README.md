@@ -115,6 +115,7 @@ export DATABRICKS_TOKEN=<your-personal-access-token>
 ```
 
 For GitHub Actions secrets, set `DATABRICKS_HOST` to the real workspace URL (for example, `https://adb-<id>.<region>.databricks.com`), not a placeholder like `${env.DATABRICKS_HOST}`.
+Do not rely on the legacy pip package `databricks-cli` for bundle workflows; use the official Databricks CLI installer/action.
 
 Optional (if using an existing cluster):
 
