@@ -43,7 +43,7 @@ jobs:
             echo "DATABRICKS_HOST is not set. Configure repository secret DATABRICKS_HOST."
             exit 1
           fi
-          if [[ "${DATABRICKS_HOST}" == *'${env.'* ]] || [[ "${DATABRICKS_HOST}" == *'${{'* ]]; then
+          if [[ "${DATABRICKS_HOST}" == *'${env.'* ]] || [[ "${DATABRICKS_HOST}" == *'${'* ]]; then
             echo "DATABRICKS_HOST looks like a placeholder (${DATABRICKS_HOST})."
             echo "Set it to a real workspace URL such as https://adb-1234567890123456.12.azuredatabricks.net"
             exit 1
