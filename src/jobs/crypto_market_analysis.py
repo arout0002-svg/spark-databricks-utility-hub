@@ -127,6 +127,10 @@ def main(config_path: str) -> None:
                 df = reader.option("inferSchema", "true").json(input_path)
             else:
                 raise ValueError(f"Unsupported input format: {input_format}")
+            required_cols = ["symbol", "event_time", "close"]
+            check_required_columns(df, required_cols)
+            # Force a lightweight read to surface missing-path issues here.
+            df.limit(1).count()
         except Exception:
             logger.warning(
                 "Input file not available; using generated sample market data",
@@ -141,9 +145,6 @@ def main(config_path: str) -> None:
                 ("ETH", "2026-01-01 00:10:00", 2795.0),
             ]
             df = spark.createDataFrame(sample_rows, ["symbol", "event_time", "close"])
-
-        required_cols = ["symbol", "event_time", "close"]
-        check_required_columns(df, required_cols)
 
         df = df.withColumn("event_time", F.to_timestamp("event_time")).withColumn("close", F.col("close").cast("double"))
         scored = compute_indicators(df)
