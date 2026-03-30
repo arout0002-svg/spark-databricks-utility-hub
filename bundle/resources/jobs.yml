@@ -7,6 +7,8 @@ resources:
         - environment_key: default
           spec:
             client: "2"
+            dependencies:
+              - ${var.jar_path}
       tasks:
         - task_key: run_crypto_market_analysis
           environment_key: default
@@ -15,8 +17,6 @@ resources:
             parameters:
               - "--config"
               - "../../src/configs/${bundle.target}.yaml"
-          libraries:
-            - jar: ${var.jar_path}
 
     etl_job:
       name: "${bundle.name}-${bundle.target}-etl-job"
@@ -25,6 +25,8 @@ resources:
         - environment_key: default
           spec:
             client: "2"
+            dependencies:
+              - ${var.jar_path}
       tasks:
         - task_key: run_etl_job
           environment_key: default
@@ -33,8 +35,6 @@ resources:
             parameters:
               - "--config"
               - "../../src/configs/${bundle.target}.yaml"
-          libraries:
-            - jar: ${var.jar_path}
 
     streaming_job:
       name: "${bundle.name}-${bundle.target}-streaming-job"
@@ -43,6 +43,8 @@ resources:
         - environment_key: default
           spec:
             client: "2"
+            dependencies:
+              - ${var.jar_path}
       tasks:
         - task_key: run_streaming_job
           environment_key: default
@@ -51,5 +53,3 @@ resources:
             parameters:
               - "--config"
               - "../../src/configs/${bundle.target}.yaml"
-          libraries:
-            - jar: ${var.jar_path}
