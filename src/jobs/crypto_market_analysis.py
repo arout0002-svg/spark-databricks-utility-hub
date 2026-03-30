@@ -53,10 +53,14 @@ def main(config_path: str) -> None:
         output_path = get_required(config, "crypto_output_path")
         input_format = config.get("crypto_input_format", "csv")
 
-        # Demonstrates calling reusable utility JAR from PySpark job.
-        utc_now = datetime.now(timezone.utc).isoformat()
-        epoch_ms = spark._jvm.com.company.utils.DateUtils.toEpochMillis(utc_now)
-        logger.info("JAR utility check completed", extra={"current_epoch_ms": epoch_ms})
+        # Best-effort JAR utility usage. In serverless-only environments, direct JVM JAR
+        # attachment may be unavailable; continue processing with Python logic.
+        try:
+            utc_now = datetime.now(timezone.utc).isoformat()
+            epoch_ms = spark._jvm.com.company.utils.DateUtils.toEpochMillis(utc_now)
+            logger.info("JAR utility check completed", extra={"current_epoch_ms": epoch_ms})
+        except Exception:
+            logger.warning("JAR utility not available; continuing without JVM helper")
 
         reader = spark.read
         if input_format == "csv":
