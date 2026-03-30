@@ -1,12 +1,12 @@
 env: prod
 
-crypto_input_path: /Volumes/main/default/crypto-data/input/crypto_prices.csv
+crypto_input_path: /Volumes/workspace/default/dbx/input/crypto_prices.csv
 crypto_input_format: csv
-crypto_output_path: /Volumes/main/default/crypto-data/output/prod/crypto_market_analysis
+crypto_output_path: /Volumes/workspace/default/dbx/output/prod/crypto_market_analysis
 
-etl_input_path: /Volumes/main/default/crypto-data/input/raw_etl.json
+etl_input_path: /Volumes/workspace/default/dbx/input/raw_etl.json
 etl_input_format: json
-etl_output_path: /Volumes/main/default/crypto-data/output/prod/etl_curated
+etl_output_path: /Volumes/workspace/default/dbx/output/prod/etl_curated
 etl_required_columns:
   - id
   - updated_at
@@ -16,7 +16,7 @@ etl_dedupe_keys:
   - id
 etl_dedupe_order_col: updated_at
 
-stream_output_path: /Volumes/main/default/crypto-data/output/prod/streaming_output
-stream_checkpoint_path: /Volumes/main/default/crypto-data/checkpoints/prod/streaming_job
+stream_output_path: /Volumes/workspace/default/dbx/output/prod/streaming_output
+stream_checkpoint_path: /Volumes/workspace/default/dbx/checkpoints/prod/streaming_job
 stream_rows_per_second: 10
 stream_run_seconds: 60
