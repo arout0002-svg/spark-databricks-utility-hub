@@ -1,4 +1,5 @@
 """Generic ETL batch job with quality checks."""
+# mypy: disable-error-code=no-redef
 
 import argparse
 
@@ -6,11 +7,18 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType
 
-from src.common.config_loader import get_required, load_yaml_config
-from src.common.delta_utils import add_ingest_columns, deduplicate_by_keys, write_delta
-from src.common.logger import get_logger
-from src.common.spark_session import get_spark
-from src.common.validation import check_required_columns, validate_column_types
+try:
+    from src.common.config_loader import get_required, load_yaml_config
+    from src.common.delta_utils import add_ingest_columns, deduplicate_by_keys, write_delta
+    from src.common.logger import get_logger
+    from src.common.spark_session import get_spark
+    from src.common.validation import check_required_columns, validate_column_types
+except ModuleNotFoundError:
+    from common.config_loader import get_required, load_yaml_config
+    from common.delta_utils import add_ingest_columns, deduplicate_by_keys, write_delta
+    from common.logger import get_logger
+    from common.spark_session import get_spark
+    from common.validation import check_required_columns, validate_column_types
 
 
 def clean_data(df: DataFrame) -> DataFrame:

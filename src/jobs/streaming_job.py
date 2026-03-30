@@ -1,12 +1,18 @@
 """Structured streaming demo job using Spark rate source."""
+# mypy: disable-error-code=no-redef
 
 import argparse
 
 from pyspark.sql import functions as F
 
-from src.common.config_loader import get_required, load_yaml_config
-from src.common.logger import get_logger
-from src.common.spark_session import get_spark
+try:
+    from src.common.config_loader import get_required, load_yaml_config
+    from src.common.logger import get_logger
+    from src.common.spark_session import get_spark
+except ModuleNotFoundError:
+    from common.config_loader import get_required, load_yaml_config
+    from common.logger import get_logger
+    from common.spark_session import get_spark
 
 
 def main(config_path: str) -> None:

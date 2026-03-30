@@ -1,4 +1,5 @@
 """Crypto market analysis batch job."""
+# mypy: disable-error-code=no-redef
 
 import argparse
 from datetime import datetime, timezone
@@ -8,11 +9,18 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.config_loader import get_required, load_yaml_config
-from src.common.delta_utils import add_ingest_columns, write_delta
-from src.common.logger import get_logger
-from src.common.spark_session import get_spark
-from src.common.validation import check_required_columns
+try:
+    from src.common.config_loader import get_required, load_yaml_config
+    from src.common.delta_utils import add_ingest_columns, write_delta
+    from src.common.logger import get_logger
+    from src.common.spark_session import get_spark
+    from src.common.validation import check_required_columns
+except ModuleNotFoundError:
+    from common.config_loader import get_required, load_yaml_config
+    from common.delta_utils import add_ingest_columns, write_delta
+    from common.logger import get_logger
+    from common.spark_session import get_spark
+    from common.validation import check_required_columns
 
 
 def compute_indicators(df: DataFrame) -> DataFrame:
