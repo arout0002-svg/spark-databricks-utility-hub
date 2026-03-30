@@ -2,10 +2,12 @@
 # mypy: disable-error-code=no-redef
 
 import argparse
+import logging
 from datetime import datetime, timezone
 from typing import Any, cast
 
-from pyspark.sql import DataFrame
+import yaml
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
@@ -16,11 +18,56 @@ try:
     from src.common.spark_session import get_spark
     from src.common.validation import check_required_columns
 except ModuleNotFoundError:
-    from common.config_loader import get_required, load_yaml_config
-    from common.delta_utils import add_ingest_columns, write_delta
-    from common.logger import get_logger
-    from common.spark_session import get_spark
-    from common.validation import check_required_columns
+    try:
+        from common.config_loader import get_required, load_yaml_config
+        from common.delta_utils import add_ingest_columns, write_delta
+        from common.logger import get_logger
+        from common.spark_session import get_spark
+        from common.validation import check_required_columns
+    except ModuleNotFoundError:
+        # Final fallback for serverless script execution contexts where package
+        # imports are unavailable; keep the job runnable with local helpers.
+        def load_yaml_config(config_path: str) -> dict[str, Any]:
+            with open(config_path, "r", encoding="utf-8") as file:
+                data = yaml.safe_load(file) or {}
+            if not isinstance(data, dict):
+                raise ValueError(f"Invalid YAML config format: {config_path}")
+            return data
+
+        def get_required(config: dict[str, Any], key: str) -> Any:
+            if key not in config:
+                raise ValueError(f"Missing required config key: {key}")
+            return config[key]
+
+        def check_required_columns(df: DataFrame, required_columns: list[str]) -> None:  # type: ignore[misc]
+            missing = [col for col in required_columns if col not in df.columns]
+            if missing:
+                raise ValueError(f"Missing required columns: {missing}")
+
+        def add_ingest_columns(df: DataFrame) -> DataFrame:
+            return (
+                df.withColumn("ingest_ts", F.current_timestamp())
+                .withColumn("ingest_date", F.to_date(F.current_timestamp()))
+            )
+
+        def write_delta(df: DataFrame, path: str, mode: str = "append") -> None:  # type: ignore[misc]
+            df.write.format("delta").mode(mode).save(path)
+
+        def get_spark(app_name: str) -> SparkSession:  # type: ignore[misc]
+            return SparkSession.builder.appName(app_name).getOrCreate()
+
+        def get_logger(name: str, level: str = "INFO") -> logging.Logger:  # type: ignore[misc]
+            logger = logging.getLogger(name)
+            if logger.handlers:
+                return logger
+            logger.setLevel(level.upper())
+            handler = logging.StreamHandler()
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+            )
+            logger.addHandler(handler)
+            logger.propagate = False
+            return logger
 
 
 def compute_indicators(df: DataFrame) -> DataFrame:
