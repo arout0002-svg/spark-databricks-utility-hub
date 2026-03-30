@@ -1,7 +1,6 @@
 from pyspark.sql import Row
 from pyspark.sql import functions as F
-
-from jobs.crypto_market_analysis import compute_indicators
+from src.jobs.crypto_market_analysis import compute_indicators
 
 
 def test_compute_indicators_adds_expected_columns(spark):
