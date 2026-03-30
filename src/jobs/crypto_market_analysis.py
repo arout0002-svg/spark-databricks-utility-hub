@@ -1,17 +1,24 @@
 """Crypto market analysis batch job."""
 
 import argparse
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from common.config_loader import get_required, load_yaml_config
-from common.delta_utils import add_ingest_columns, write_delta
-from common.logger import get_logger
-from common.spark_session import get_spark
-from common.validation import check_required_columns
+# Ensure imports from src/common resolve when executed as a script in Databricks.
+SRC_ROOT = Path(__file__).resolve().parents[1]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.append(str(SRC_ROOT))
+
+from common.config_loader import get_required, load_yaml_config  # noqa: E402
+from common.delta_utils import add_ingest_columns, write_delta  # noqa: E402
+from common.logger import get_logger  # noqa: E402
+from common.spark_session import get_spark  # noqa: E402
+from common.validation import check_required_columns  # noqa: E402
 
 
 def compute_indicators(df: DataFrame) -> DataFrame:
