@@ -1,8 +1,2 @@
-resources:
-  clusters:
-    analytics_job_cluster:
-      cluster_name: "${bundle.name}-${bundle.target}-cluster"
-      spark_version: "14.3.x-scala2.12"
-      node_type_id: "Standard_DS3_v2"
-      autotermination_minutes: 20
-      num_workers: 2
+# Serverless-only workspace: no cluster resources required.
+resources: {}

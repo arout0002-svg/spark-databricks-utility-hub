@@ -3,11 +3,13 @@ resources:
     crypto_market_analysis_job:
       name: "${bundle.name}-${bundle.target}-crypto-market-analysis"
       max_concurrent_runs: 1
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
       tasks:
         - task_key: run_crypto_market_analysis
-          # If you want to use an existing cluster, set var.cluster_id and replace
-          # job_cluster_key with existing_cluster_id: ${var.cluster_id}
-          job_cluster_key: shared_job_cluster
+          environment_key: default
           spark_python_task:
             python_file: ../../src/jobs/crypto_market_analysis.py
             parameters:
@@ -15,20 +17,17 @@ resources:
               - "../../src/configs/${bundle.target}.yaml"
           libraries:
             - jar: ${var.jar_path}
-      job_clusters:
-        - job_cluster_key: shared_job_cluster
-          new_cluster:
-            spark_version: "14.3.x-scala2.12"
-            node_type_id: "Standard_DS3_v2"
-            num_workers: 2
-            autotermination_minutes: 20
 
     etl_job:
       name: "${bundle.name}-${bundle.target}-etl-job"
       max_concurrent_runs: 1
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
       tasks:
         - task_key: run_etl_job
-          job_cluster_key: shared_job_cluster
+          environment_key: default
           spark_python_task:
             python_file: ../../src/jobs/etl_job.py
             parameters:
@@ -36,20 +35,17 @@ resources:
               - "../../src/configs/${bundle.target}.yaml"
           libraries:
             - jar: ${var.jar_path}
-      job_clusters:
-        - job_cluster_key: shared_job_cluster
-          new_cluster:
-            spark_version: "14.3.x-scala2.12"
-            node_type_id: "Standard_DS3_v2"
-            num_workers: 2
-            autotermination_minutes: 20
 
     streaming_job:
       name: "${bundle.name}-${bundle.target}-streaming-job"
       max_concurrent_runs: 1
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
       tasks:
         - task_key: run_streaming_job
-          job_cluster_key: shared_job_cluster
+          environment_key: default
           spark_python_task:
             python_file: ../../src/jobs/streaming_job.py
             parameters:
@@ -57,10 +53,3 @@ resources:
               - "../../src/configs/${bundle.target}.yaml"
           libraries:
             - jar: ${var.jar_path}
-      job_clusters:
-        - job_cluster_key: shared_job_cluster
-          new_cluster:
-            spark_version: "14.3.x-scala2.12"
-            node_type_id: "Standard_DS3_v2"
-            num_workers: 2
-            autotermination_minutes: 20
