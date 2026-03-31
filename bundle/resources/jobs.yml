@@ -58,9 +58,6 @@ resources:
       tasks:
         - task_key: run_s3_ingest
           environment_key: default
-          environment_variables:
-            AWS_ACCESS_KEY_ID: "${var.aws_access_key_id}"
-            AWS_SECRET_ACCESS_KEY: "${var.aws_secret_access_key}"
           spark_python_task:
             python_file: ../../src/jobs/s3_ingest_job.py
             parameters:

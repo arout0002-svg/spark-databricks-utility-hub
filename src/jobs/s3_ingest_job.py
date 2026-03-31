@@ -89,20 +89,61 @@ def generate_sample_data(spark: SparkSession, num_hours: int = 72) -> DataFrame:
     )
 
 
-def configure_s3a(spark: SparkSession, logger: logging.Logger) -> None:
-    """Configure Spark's S3A filesystem with AWS credentials from env vars.
+_SECRET_SCOPE = "aws-creds"
+_SECRET_KEY_ACCESS = "aws_access_key_id"
+_SECRET_KEY_SECRET = "aws_secret_access_key"
 
-    Reads AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, which are injected by
-    the Databricks job task environment_variables declared in jobs.yml.
+
+def _get_dbutils(spark: SparkSession) -> Any:
+    """Return a dbutils handle when running on Databricks; None otherwise."""
+    try:
+        # Works in Databricks jobs and interactive clusters.
+        return spark._jvm.com.databricks.dbutils_v1.DBUtilsHolder.dbutils()  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    try:
+        # Alternative import path used in some Databricks runtimes.
+        from dbruntime.dbutils import DBUtils  # type: ignore[import]
+        return DBUtils(spark)
+    except ImportError:
+        return None
+
+
+def configure_s3a(spark: SparkSession, logger: logging.Logger) -> None:
+    """Configure Spark's S3A filesystem with AWS credentials.
+
+    Credential resolution order:
+    1. Databricks Secret Scope ``aws-creds`` (production / CI path).
+       The deploy workflow writes the GitHub secrets into this scope before
+       running the job, so no plaintext values ever touch the bundle config.
+    2. Environment variables AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+       (local development fallback).
     """
-    access_key = os.getenv("AWS_ACCESS_KEY_ID", "").strip()
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "").strip()
+    access_key = ""
+    secret_key = ""
+
+    dbutils = _get_dbutils(spark)
+    if dbutils is not None:
+        try:
+            access_key = dbutils.secrets.get(scope=_SECRET_SCOPE, key=_SECRET_KEY_ACCESS)
+            secret_key = dbutils.secrets.get(scope=_SECRET_SCOPE, key=_SECRET_KEY_SECRET)
+            logger.info("AWS credentials loaded from Databricks Secret Scope '%s'", _SECRET_SCOPE)
+        except Exception as exc:
+            logger.warning("Could not read Databricks secrets (%s); falling back to env vars", exc)
+
+    if not access_key or not secret_key:
+        access_key = os.getenv("AWS_ACCESS_KEY_ID", "").strip()
+        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "").strip()
+        if access_key and secret_key:
+            logger.info("AWS credentials loaded from environment variables")
 
     if not access_key or not secret_key:
         raise EnvironmentError(
-            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set. "
-            "Configure them as GitHub secrets (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) "
-            "and they will be forwarded to the Databricks job via bundle variables."
+            "AWS credentials not found. Either:\n"
+            "  • Store them in Databricks Secret Scope 'aws-creds' "
+            "(keys: aws_access_key_id, aws_secret_access_key), or\n"
+            "  • Set env vars AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for local runs.\n"
+            "The deploy workflow auto-creates the secret scope from GitHub secrets."
         )
 
     hadoop_conf = spark.sparkContext._jsc.hadoopConfiguration()  # type: ignore[attr-defined]
@@ -114,7 +155,7 @@ def configure_s3a(spark: SparkSession, logger: logging.Logger) -> None:
     hadoop_conf.set("fs.s3a.path.style.access", "false")
     # Enable AWS Signature Version 4 (required for many regions).
     hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
-    logger.info("S3A filesystem configured with explicit AWS credentials")
+    logger.info("S3A filesystem configured successfully")
 
 
 def write_to_s3(df: DataFrame, s3_path: str, partition_by: str = "symbol") -> None:

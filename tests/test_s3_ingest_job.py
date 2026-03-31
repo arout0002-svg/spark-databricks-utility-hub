@@ -51,30 +51,51 @@ def test_write_to_s3_local(spark: SparkSession, tmp_path: object) -> None:
     assert "symbol" in result.columns
 
 
-def test_configure_s3a_sets_hadoop_properties(spark: SparkSession) -> None:
-    """configure_s3a should apply all required Hadoop S3A properties."""
+def test_configure_s3a_reads_from_databricks_secrets(spark: SparkSession) -> None:
+    """configure_s3a should prefer Databricks Secret Scope over env vars."""
     logger = logging.getLogger("test")
-    env = {"AWS_ACCESS_KEY_ID": "AKIAIOSFTEST", "AWS_SECRET_ACCESS_KEY": "wJalrXTest"}
-
-    # Capture the Hadoop config calls without touching real AWS.
     fake_conf = MagicMock()
-    with patch.dict(os.environ, env):
+
+    fake_secrets = MagicMock()
+    fake_secrets.get.side_effect = lambda scope, key: (
+        "AKIA_FROM_SCOPE" if key == "aws_access_key_id" else "SECRET_FROM_SCOPE"
+    )
+    fake_dbutils = MagicMock()
+    fake_dbutils.secrets = fake_secrets
+
+    with patch("jobs.s3_ingest_job._get_dbutils", return_value=fake_dbutils):
         with patch.object(spark.sparkContext._jsc, "hadoopConfiguration", return_value=fake_conf):
             configure_s3a(spark, logger)
 
     set_calls = {call.args[0]: call.args[1] for call in fake_conf.set.call_args_list}
-    assert set_calls.get("fs.s3a.access.key") == "AKIAIOSFTEST"
-    assert set_calls.get("fs.s3a.secret.key") == "wJalrXTest"
+    assert set_calls.get("fs.s3a.access.key") == "AKIA_FROM_SCOPE"
+    assert set_calls.get("fs.s3a.secret.key") == "SECRET_FROM_SCOPE"
     assert set_calls.get("fs.s3a.impl") == "org.apache.hadoop.fs.s3a.S3AFileSystem"
 
 
-def test_configure_s3a_raises_without_credentials(spark: SparkSession) -> None:
-    """configure_s3a should raise EnvironmentError if creds are missing."""
+def test_configure_s3a_falls_back_to_env_vars(spark: SparkSession) -> None:
+    """configure_s3a should use env vars when no dbutils / secrets are available."""
     logger = logging.getLogger("test")
-    env = {"AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""}
+    fake_conf = MagicMock()
+    env = {"AWS_ACCESS_KEY_ID": "AKIAIOSFTEST", "AWS_SECRET_ACCESS_KEY": "wJalrXTest"}
 
-    with patch.dict(os.environ, env, clear=False):
-        os.environ.pop("AWS_ACCESS_KEY_ID", None)
-        os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
-        with pytest.raises(EnvironmentError, match="AWS_ACCESS_KEY_ID"):
-            configure_s3a(spark, logger)
+    with patch("jobs.s3_ingest_job._get_dbutils", return_value=None):
+        with patch.dict(os.environ, env):
+            with patch.object(spark.sparkContext._jsc, "hadoopConfiguration", return_value=fake_conf):
+                configure_s3a(spark, logger)
+
+    set_calls = {call.args[0]: call.args[1] for call in fake_conf.set.call_args_list}
+    assert set_calls.get("fs.s3a.access.key") == "AKIAIOSFTEST"
+    assert set_calls.get("fs.s3a.secret.key") == "wJalrXTest"
+
+
+def test_configure_s3a_raises_without_credentials(spark: SparkSession) -> None:
+    """configure_s3a should raise EnvironmentError when no creds are found anywhere."""
+    logger = logging.getLogger("test")
+
+    with patch("jobs.s3_ingest_job._get_dbutils", return_value=None):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("AWS_ACCESS_KEY_ID", None)
+            os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
+            with pytest.raises(EnvironmentError, match="aws-creds"):
+                configure_s3a(spark, logger)

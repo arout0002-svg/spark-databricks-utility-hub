@@ -96,26 +96,25 @@ jobs:
           fi
           databricks fs cp jar-utils/build/libs/project-utils.jar "${JAR_URI}" --overwrite --profile ci
 
-      - name: Validate Databricks bundle
+      - name: Store AWS credentials in Databricks Secret Scope
         run: |
-          databricks bundle validate -t dev --profile ci \
-            --var "jar_path=${JAR_URI}" \
-            --var "aws_access_key_id=${AWS_ACCESS_KEY_ID}" \
-            --var "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
+          # Create the scope if it doesn't already exist (error is ignored).
+          databricks secrets create-scope aws-creds --profile ci 2>/dev/null || true
+          # Overwrite the keys every deploy so they stay in sync with the GitHub secrets.
+          databricks secrets put-secret aws-creds aws_access_key_id \
+            --string-value "${AWS_ACCESS_KEY_ID}" --profile ci
+          databricks secrets put-secret aws-creds aws_secret_access_key \
+            --string-value "${AWS_SECRET_ACCESS_KEY}" --profile ci
+          echo "AWS credentials stored in Databricks Secret Scope 'aws-creds'"
+
+      - name: Validate Databricks bundle
+        run: databricks bundle validate -t dev --profile ci --var "jar_path=${JAR_URI}"
 
       - name: Deploy Databricks bundle
-        run: |
-          databricks bundle deploy -t dev --profile ci \
-            --var "jar_path=${JAR_URI}" \
-            --var "aws_access_key_id=${AWS_ACCESS_KEY_ID}" \
-            --var "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
+        run: databricks bundle deploy -t dev --profile ci --var "jar_path=${JAR_URI}"
 
       - name: Run crypto market analysis job
         run: databricks bundle run crypto_market_analysis_job -t dev --profile ci --var "jar_path=${JAR_URI}"
 
       - name: Run S3 bronze ingest job
-        run: |
-          databricks bundle run s3_ingest_job -t dev --profile ci \
-            --var "jar_path=${JAR_URI}" \
-            --var "aws_access_key_id=${AWS_ACCESS_KEY_ID}" \
-            --var "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
+        run: databricks bundle run s3_ingest_job -t dev --profile ci --var "jar_path=${JAR_URI}"
