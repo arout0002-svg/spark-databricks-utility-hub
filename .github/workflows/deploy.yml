@@ -102,3 +102,6 @@ jobs:
 
       - name: Run crypto market analysis job
         run: databricks bundle run crypto_market_analysis_job -t dev --profile ci --var "jar_path=${JAR_URI}"
+
+      - name: Run S3 bronze ingest job
+        run: databricks bundle run s3_ingest_job -t dev --profile ci --var "jar_path=${JAR_URI}"

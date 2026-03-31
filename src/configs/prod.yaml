@@ -20,3 +20,7 @@ stream_output_path: /Volumes/workspace/default/dbx/output/prod/streaming_output
 stream_checkpoint_path: /Volumes/workspace/default/dbx/checkpoints/prod/streaming_job
 stream_rows_per_second: 10
 stream_run_seconds: 60
+
+# S3 bronze ingest job
+s3_bronze_output_path: s3://test-ak-crypto-data-storage/bronze/
+s3_ingest_num_hours: 168

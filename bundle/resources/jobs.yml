@@ -47,3 +47,19 @@ resources:
             parameters:
               - "--config"
               - "../../src/configs/${bundle.target}.yaml"
+
+    s3_ingest_job:
+      name: "${bundle.name}-${bundle.target}-s3-ingest-job"
+      max_concurrent_runs: 1
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+      tasks:
+        - task_key: run_s3_ingest
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/jobs/s3_ingest_job.py
+            parameters:
+              - "--config"
+              - "../../src/configs/${bundle.target}.yaml"
