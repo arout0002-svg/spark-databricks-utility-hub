@@ -14,6 +14,8 @@ jobs:
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       DATABRICKS_CLUSTER_ID: ${{ secrets.DATABRICKS_CLUSTER_ID }}
       DATABRICKS_JAR_URI: ${{ secrets.DATABRICKS_JAR_URI }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     steps:
       - name: Checkout repository
@@ -95,13 +97,25 @@ jobs:
           databricks fs cp jar-utils/build/libs/project-utils.jar "${JAR_URI}" --overwrite --profile ci
 
       - name: Validate Databricks bundle
-        run: databricks bundle validate -t dev --profile ci --var "jar_path=${JAR_URI}"
+        run: |
+          databricks bundle validate -t dev --profile ci \
+            --var "jar_path=${JAR_URI}" \
+            --var "aws_access_key_id=${AWS_ACCESS_KEY_ID}" \
+            --var "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
 
       - name: Deploy Databricks bundle
-        run: databricks bundle deploy -t dev --profile ci --var "jar_path=${JAR_URI}"
+        run: |
+          databricks bundle deploy -t dev --profile ci \
+            --var "jar_path=${JAR_URI}" \
+            --var "aws_access_key_id=${AWS_ACCESS_KEY_ID}" \
+            --var "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
 
       - name: Run crypto market analysis job
         run: databricks bundle run crypto_market_analysis_job -t dev --profile ci --var "jar_path=${JAR_URI}"
 
       - name: Run S3 bronze ingest job
-        run: databricks bundle run s3_ingest_job -t dev --profile ci --var "jar_path=${JAR_URI}"
+        run: |
+          databricks bundle run s3_ingest_job -t dev --profile ci \
+            --var "jar_path=${JAR_URI}" \
+            --var "aws_access_key_id=${AWS_ACCESS_KEY_ID}" \
+            --var "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"

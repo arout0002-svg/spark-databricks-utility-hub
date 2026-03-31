@@ -1,9 +1,13 @@
 """Unit tests for the S3 crypto ingest job."""
 
+import logging
+import os
+from unittest.mock import MagicMock, patch
+
 import pytest
 from pyspark.sql import SparkSession
 
-from jobs.s3_ingest_job import generate_sample_data, write_to_s3
+from jobs.s3_ingest_job import configure_s3a, generate_sample_data, write_to_s3
 
 
 @pytest.fixture(scope="module")
@@ -45,3 +49,32 @@ def test_write_to_s3_local(spark: SparkSession, tmp_path: object) -> None:
     result = spark.read.parquet(output_path)
     assert result.count() == df.count()
     assert "symbol" in result.columns
+
+
+def test_configure_s3a_sets_hadoop_properties(spark: SparkSession) -> None:
+    """configure_s3a should apply all required Hadoop S3A properties."""
+    logger = logging.getLogger("test")
+    env = {"AWS_ACCESS_KEY_ID": "AKIAIOSFTEST", "AWS_SECRET_ACCESS_KEY": "wJalrXTest"}
+
+    # Capture the Hadoop config calls without touching real AWS.
+    fake_conf = MagicMock()
+    with patch.dict(os.environ, env):
+        with patch.object(spark.sparkContext._jsc, "hadoopConfiguration", return_value=fake_conf):
+            configure_s3a(spark, logger)
+
+    set_calls = {call.args[0]: call.args[1] for call in fake_conf.set.call_args_list}
+    assert set_calls.get("fs.s3a.access.key") == "AKIAIOSFTEST"
+    assert set_calls.get("fs.s3a.secret.key") == "wJalrXTest"
+    assert set_calls.get("fs.s3a.impl") == "org.apache.hadoop.fs.s3a.S3AFileSystem"
+
+
+def test_configure_s3a_raises_without_credentials(spark: SparkSession) -> None:
+    """configure_s3a should raise EnvironmentError if creds are missing."""
+    logger = logging.getLogger("test")
+    env = {"AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""}
+
+    with patch.dict(os.environ, env, clear=False):
+        os.environ.pop("AWS_ACCESS_KEY_ID", None)
+        os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
+        with pytest.raises(EnvironmentError, match="AWS_ACCESS_KEY_ID"):
+            configure_s3a(spark, logger)

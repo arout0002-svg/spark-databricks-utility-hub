@@ -23,6 +23,12 @@ variables:
   cluster_id:
     description: Optional existing cluster ID override
     default: ""
+  aws_access_key_id:
+    description: AWS access key for S3 write access
+    default: ""
+  aws_secret_access_key:
+    description: AWS secret access key for S3 write access
+    default: ""
 
 targets:
   dev:

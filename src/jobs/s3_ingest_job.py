@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -88,6 +89,34 @@ def generate_sample_data(spark: SparkSession, num_hours: int = 72) -> DataFrame:
     )
 
 
+def configure_s3a(spark: SparkSession, logger: logging.Logger) -> None:
+    """Configure Spark's S3A filesystem with AWS credentials from env vars.
+
+    Reads AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, which are injected by
+    the Databricks job task environment_variables declared in jobs.yml.
+    """
+    access_key = os.getenv("AWS_ACCESS_KEY_ID", "").strip()
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "").strip()
+
+    if not access_key or not secret_key:
+        raise EnvironmentError(
+            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set. "
+            "Configure them as GitHub secrets (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) "
+            "and they will be forwarded to the Databricks job via bundle variables."
+        )
+
+    hadoop_conf = spark.sparkContext._jsc.hadoopConfiguration()  # type: ignore[attr-defined]
+    hadoop_conf.set("fs.s3a.access.key", access_key)
+    hadoop_conf.set("fs.s3a.secret.key", secret_key)
+    hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    hadoop_conf.set("fs.s3a.endpoint", "s3.amazonaws.com")
+    # Path-style access avoids DNS issues for buckets with dots in the name.
+    hadoop_conf.set("fs.s3a.path.style.access", "false")
+    # Enable AWS Signature Version 4 (required for many regions).
+    hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
+    logger.info("S3A filesystem configured with explicit AWS credentials")
+
+
 def write_to_s3(df: DataFrame, s3_path: str, partition_by: str = "symbol") -> None:
     """Write DataFrame to S3 in Parquet format, partitioned by symbol."""
     (
@@ -102,6 +131,7 @@ def main(config_path: str) -> None:
     """Entrypoint for the S3 crypto ingest job."""
     logger = get_logger("s3_ingest_job")
     spark = get_spark("s3_ingest_job")
+    configure_s3a(spark, logger)
     logger.info("Starting S3 crypto ingest job")
 
     try:
