@@ -96,16 +96,22 @@ _SECRET_KEY_SECRET = "aws_secret_access_key"
 
 def _get_dbutils(spark: SparkSession) -> Any:
     """Return a dbutils handle when running on Databricks; None otherwise."""
+    # Path 1: JVM holder — works in interactive clusters and some job runtimes.
     try:
-        # Works in Databricks jobs and interactive clusters.
         return spark._jvm.com.databricks.dbutils_v1.DBUtilsHolder.dbutils()  # type: ignore[attr-defined]
     except Exception:
         pass
+    # Path 2: pyspark.dbutils — the correct API for Databricks Python jobs.
     try:
-        # Alternative import path used in some Databricks runtimes.
-        from dbruntime.dbutils import DBUtils  # type: ignore[import]
+        from pyspark.dbutils import DBUtils  # type: ignore[import]
         return DBUtils(spark)
-    except ImportError:
+    except Exception:
+        pass
+    # Path 3: dbruntime — older/alternate Databricks runtime path.
+    try:
+        from dbruntime.dbutils import DBUtils  # type: ignore[import]  # noqa: F811
+        return DBUtils(spark)
+    except Exception:
         return None
 
 
